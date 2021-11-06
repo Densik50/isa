@@ -1,0 +1,9 @@
+{
+    "C_Cpp.errorSquiggles": "Disabled",
+    "files.associations": {
+        "xstring": "cpp",
+        "iostream": "cpp",
+        "memory": "cpp",
+        "ostream": "cpp"
+    }
+}
