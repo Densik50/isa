@@ -4,6 +4,8 @@
         "xstring": "cpp",
         "iostream": "cpp",
         "memory": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "system_error": "cpp",
+        "xlocale": "cpp"
     }
 }
