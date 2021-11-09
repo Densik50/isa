@@ -1,9 +1,8 @@
 //Autor: Daniel Paulovic <xpaulo04>
 //TODO fix something with escaping in arguments
-//TODO doc
-//TODO! finish lua (tcp reassmbly tough)
+//TODO vypis response
 //TODO! redo code from man
-//TODO check response 
+//TODO doc
 
 #include <string>
 #include <string.h>
@@ -463,14 +462,32 @@ int main(int argc, char *argv[])
     //CHECK status
     while(result[index] != '\"')
     {
-        if(DEBUG) cout << result[index];
+        if(DEBUG) cout << result[index] << endl;
         tmp += result[index++];
     }
 
-    cout << tmp << endl;
-    if(tmp == "ok ") cout << "OKEZ";
-    if(tmp == "err ") cout << "ERREZ";
+    if(DEBUG)cout << tmp << endl;
+    int result_code;
+    if(tmp == "ok ") result_code = 0;
+    if(tmp == "err ") result_code = 1;
+    tmp = "";
+    index++;
+    int flag_check = 0;
 
+    while((result[index] != '\"') && (flag_check == 0))
+    {
+        if(DEBUG) cout << result[index];
+        if(result[index] == '\\')
+        {
+            flag_check = 1;
+        }
+        else
+        {
+            flag_check = 0;
+        }
+        tmp += result[index++];
+    }
+    if(DEBUG)cout << tmp << endl;
 
     //if((args->command == "login") && (result == "ok"))
 
