@@ -3,6 +3,8 @@
 //TODO vypis response
 //TODO! redo code from man
 //TODO doc
+//TODO gethostbyname
+//TODO check if login-token already exists
 
 #include <string>
 #include <string.h>
@@ -453,43 +455,173 @@ int main(int argc, char *argv[])
     // (ok "something")
     // (err "something")
     string result = string(buf);
-
     if(DEBUG) cout << result << endl;
 
-    string tmp = "";
+    //its not list command so return is simple
     int index = 1; //start after (
-
+    string tmp = "";
     //CHECK status
-    while(result[index] != '\"')
+    while(result[index] != ' ')
     {
-        if(DEBUG) cout << result[index] << endl;
         tmp += result[index++];
     }
 
-    if(DEBUG)cout << tmp << endl;
-    int result_code;
-    if(tmp == "ok ") result_code = 0;
-    if(tmp == "err ") result_code = 1;
+    int result_code = -1;
+    if(tmp == "ok") result_code = 0;
+    if(tmp == "err") result_code = 1;
+    
     tmp = "";
     index++;
-    int flag_check = 0;
 
-    while((result[index] != '\"') && (flag_check == 0))
+    while((result[index] != '\"') && (result[index-1] != '\\'))
     {
-        if(DEBUG) cout << result[index];
-        if(result[index] == '\\')
+        tmp += result[index++];
+        if(index > (int) result.length()) break;
+    }
+
+    if(((args->command == "list") && ((int)result.length() > 4)) && (result_code == 0))
+    {
+        //go through state automat
+        bool in_arg = false;
+        bool in_message = false;
+        bool finding_id = false;
+        int argsleft = 0;
+        string outmessage = "";
+        int arg1_start_index, arg1_end_index, arg2_start_index, arg2_end_index = 0;
+        int message_start_index, message_end_index, id_start_index, id_end_index = 0;
+
+        //looping through whole string
+        for(int i = 5; i <= (int)result.length() - 1; i++)
         {
-            flag_check = 1;
+            if(in_message)
+            {
+                if(in_arg)
+                {
+                    if((result[i] == '\"') && (result[i-1] != '\\'))
+                    {
+                        if(argsleft == 2)
+                        {
+                            arg1_end_index = i;
+                            argsleft--;
+                        }
+                        else
+                        {
+                            arg2_end_index = i;
+                            argsleft--;
+                        }
+                        in_arg = false;
+                    }
+                }
+                else
+                {
+                    if(result[i] == ')')
+                    {
+                        in_message = false;
+                        message_end_index = i;
+                        
+                        //TODO vypis check ako vyzera first
+                        /*
+
+                        SUCCESS:
+                        1:
+                            From: user3
+                            Subject: message01
+                        2:
+                            From: user3
+                            Subject: message02
+                        3:
+                            From: user3
+                            Subject: message03
+                        4:
+                            From: user3
+                            Subject: message04
+                        5:
+                            From: user3
+                            Subject: message04
+
+                        */
+                        if((message_end_index - message_start_index) > 2)
+                        {
+                            string message_index = result.substr(id_start_index, id_end_index - id_start_index);
+                            string arg01 = result.substr(arg1_start_index, arg1_end_index - arg1_start_index);
+                            string arg02 = result.substr(arg2_start_index, arg2_end_index - arg2_start_index);
+                            outmessage += (message_index + ":" + "\n");
+                            outmessage += (string("\t") + "From: " + arg01 + "\n");
+                            outmessage += (string("\t") + "Subject: " + arg02 + "\n");
+                        }
+                    }
+
+                    if((result[i] == '\"') && (result[i] != '\\'))
+                    {
+                        if(argsleft == 2)
+                        {
+                            arg1_start_index = i+1;
+                        }
+                        else
+                        {
+                            arg2_start_index = i+1;
+                        }
+                        in_arg = true;
+                    }
+
+                    if(finding_id)
+                    {
+                        if(result[i] == ' ')
+                        {
+                            finding_id = false;
+                            id_end_index = i;
+                            
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if(result[i] == '(')
+                {
+                    message_start_index = i;
+                    in_message = true;
+                    id_start_index = i+1;
+                    finding_id = true;
+                    argsleft = 2;
+                }
+            }
+        }
+        cout << "SUCCESS: " << endl << outmessage;
+    }
+    else
+    {
+        if(result_code == 0)
+        {
+            cout << "SUCCESS: " << tmp << endl;
+            if(args->command == "login")
+            {
+                index += 3;
+                login_token = "";
+                while((result[index] != '\"') && (result[index-1] != '\\'))
+                {
+                    login_token += result[index++];
+                }
+                int rc = save_login_token(login_token);
+                if(rc)
+                {
+                    return rc;
+                }
+            }
+            else if(args->command == "logout")
+            {
+                int rc = delete_login_token();
+                if(rc)
+                {
+                    return rc;
+                }
+            }
         }
         else
         {
-            flag_check = 0;
+            cout << "ERROR: " << tmp << endl;
         }
-        tmp += result[index++];
     }
-    if(DEBUG)cout << tmp << endl;
-
-    //if((args->command == "login") && (result == "ok"))
 
     return EXIT_SUCCESS;
 }
